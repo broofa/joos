@@ -3,6 +3,7 @@
 "joos" is a compact library that provides a clean, powerful, consistent, approach to creating classes and other OO patterns in JavaScript.
 
 joos is:
+
   * Lightweight - < 1.5KB minified and gzipped
   * Library agnostic - Use it with jQuery, Prototype, Ext... whatever.
   * Powerful - Supports OO constructs that aren't readily available in JS: method overriding, binding, and getter/setter support, to name a few.
@@ -10,6 +11,7 @@ joos is:
   * Cross-platform - Urrr... well... sort of.  I need to spec out what the exact browser support story is.
 
 joos is not:
+
   * A replacement for existing libraries.
 
 ## API Definition Objects (APID's)
