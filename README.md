@@ -17,6 +17,7 @@ But joos isn't just about letting you lay your code out in a clean, logical mann
   * **get**$*name* - Specifies the getter function for the *name* property
   * **set**$*name* - Specifies the setter function for the *name* property
   * **static**$*name* - Specifies that *name* is a static (class) member, as opposed to a prototype property.  This can be abbreviated as just "$" - e.g. "$*name*" is identical to "static$*name*"
+  * $*name* - Abbreviated form of **static**$*name*
   * **superclass**$ - Specifies the superclass to inherit from
   * **initialize**$ - The static initializer method.  This is only called once, immediatley after a class has been created.
   * **initialize** - The method to invoke for initializing a new object.  (This is not technically a modifier - it's just a special property)
