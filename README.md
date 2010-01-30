@@ -7,7 +7,7 @@ joos is:
   * Lightweight - < 1.5KB minified and gzipped
   * Library agnostic - Use it with jQuery, Prototype, Ext... whatever.
   * Powerful - Supports OO constructs that aren't readily available in JS: method overriding, binding, and getter/setter support, to name a few.
-  * Elegant - joos-enabled code is more readable, and just *looks*
+  * Elegant - joos-enabled code is more readable, and just *looks* better
   * Cross-platform - Urrr... well... sort of.  I need to spec out what the exact browser support story is.
 
 joos is not:
