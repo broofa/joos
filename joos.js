@@ -1,21 +1,6 @@
 // Copyright 2010, Robert Kieffer. Dual licensed under MIT and GPLv2 licenses.
 // You are free to use this code as long as this copyright header remains intact
 
-/*
- * joos.js provides the core OO support for joos. A class is defined via an API
- * Definition object (APID). The currently supported APID keys:
- *   "superclass$":      Superclass of the class
- *   "initialize$":      Static initializer
- *   "initialize":       Instance initializer.
- *   "static$(name)":    Static member (applied to the class object)
- *   "$(name)":          alias for "static$" see static$(name), above
- *   "get$(name)":       Getter method (defined using __defineGetter__)
- *   "set$(name)":       Setter method (defined using __defineSetter__)
- *   "bind$(name)":      Instance-bound method (method is bound to object as
- *                       part of initialize)
- *   (name):             Instance members (applied to prototype object)
- */
-
 (function() {
   /* Empty function (for stubbing out callbacks, etc.)
    *
@@ -74,6 +59,9 @@
 
   /* Return an object that inherits properties from another object
    *
+   * Returns: prototyped object
+   *
+   * Use: (private)
    */
   function _getPrototypedObject(proto) {
     var f = function ProtoObject() {};
