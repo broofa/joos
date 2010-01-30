@@ -244,7 +244,7 @@
             member = xet[mod];        // get/setter function
 
         // Yup, xetters have to be functions
-        if (!isFunction(member)) throw new Error(mod + '$' + name + ' is not a function');
+        if (member && !isFunction(member)) throw new Error(mod + '$' + name + ' is not a function');
 
         // See if we can find a super-function for this xetter
         var superf = superObj.__meta;
