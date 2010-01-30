@@ -276,6 +276,7 @@
    * Use: joos.createClass()
    */
   function createClass(apid) {
+    apid = apid || {};
     var sklass = apid.superclass$ || Object, sproto = sklass.prototype;
 
     // Create the class constructor function
