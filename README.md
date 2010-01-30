@@ -1,21 +1,31 @@
 # joos == "OO in JS"
 
-"joos" is a compact library (< 2KB minified+gzip'ed) that provides a clean, powerful, consistent, approach to creating classes and other OO patterns in JavaScript.  For example ...
+"joos" is a compact library (< 2KB minified+gzip'ed) that provides a clean, powerful, consistent, approach to creating classes and other OO patterns in JavaScript.
 
-## Creating a Class
-var MyClass = joos.createClass({
-  // API Definition goes here
-});
+## Class creation
+Classes are created with "joos.createClass(apid)", where 'apid' is an API Definition (APID) object.  These objects can 
 
- Some of the more powerful constructs it provides:
+Here's a simple class that demonstrates just some of the features of joos:
 
-- Ability to invoke superclass methods, on both instances and classes
-- Getter/setter methods (with inheritance support!)
-- Per-instance method binding
+    var MyClass = joos.createClass({
+      superclass$: SomeOtherClass,
 
-- Getter/setter support (including 
-, in a way that is specifically designed to keep your code as readable and intuitive as possible.
+      // Define MyClass.SOME_CONSTANT
+      $SOME_CONSTANT: 'a value',
 
-Want a taste of what it looks like?  Here ya go ...
 
-[TBD: cool code snippet goes here]
+      // Define a static initializer method. This method is called once, immediately
+      // after the class is created.
+      initialize$: function() {
+        // (function implementation)
+      },
+
+      // Define a static initializer method. This method is called once, immediately
+      // after the class is created.
+      initialize: function() {
+        // (function implementation)
+      }
+
+      // API Definition goes here
+    });
+
