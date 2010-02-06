@@ -12,7 +12,7 @@ joos **is**:
 
 joos **is not**:
 
-  * A [new] compiled language
+  * compiled into javascript. It *is* javascript.
   * A replacement for existing libraries.
 
 ## API Definition Objects (APID's)
@@ -71,40 +71,46 @@ This creates a new, empty class.  But for a slightly more interesting example, l
 
     var MyClass = joos.createClass({
 
-      // Define a class variable, "MyClass.SOME_CONSTANT"
+      // Define MyClass.SOME_CONSTANT
       $SOME_CONSTANT: 'a value',
 
-      // Define a class method, "MyClass.find"
+      // Define , MyClass.find()
       $find: function() {
-        // (code goes here)
+        // this == MyClass
       }
 
-      // Define a static initializer method. This method is called once, immediately
-      // after the class is created.
+      // Define a static initializer method. This method is called once,
+      // immediately after the class is created.
       initialize$: function() {
-        // (code goes here)
+        // Invoked once MyClass is ready for use
+        // this == MyClass
       },
 
-      // Define initializer.  This is invoked automatically during new object
-      // creation (e.g. "new MyClass()" will call this)
+      // MyClass instance initializer.
       initialize: function() {
-        // (code goes here)
+        // Invoked as part of each "new MyClass()" call
+        // this == the new MyClass instance
       },
 
-      // Define a getter for the 'this.something' property
-      get$something: function() {
-        return this._something;
-      },
-
-      // Define a setter for the 'this.something' property
+      // Define a setter method for this.something property
+      // E.g. "this.something = 123"
       set$something: function(val) {
         this._something = val;
       },
 
+      // Define a getter method for this.something property
+      // E.g. "this.something == 123"
+      get$something: function() {
+        return this._something;
+      },
+
       // Define this.doSomething() method, and tell joos to bind it to each
-      // object instance
+      // object instance.
+      // E.g.:
+      //      var x = foo.doSomething;
+      //      x();  // Calls 'x' with this == foo
       bind$doSomething: function() {
-        // (code goes here)
+        // this == MyClass instance, regardless of how this method is invoked
       }
     });
 
@@ -122,24 +128,30 @@ Again, not very interesting.  So lets flesh it out a bit:
 
     var MySubclass = joos.createClass({
 
-      // Declare MyClass as our superclass
+      // Inherit members from MyClass
       superclass$: MyClass,
 
-      // static initializer for the subclass
+      // Static initializer for the subclass
       initialize$: function() {
-        // (code goes here)
+        // Invoked once MySubclass is ready for use
+        // this == MySubclass
+      },
+ 
+      // Override superclass' find() method
+      $find: function() {
+        // this == MySubclass
+        this._super();  // Calls MyClass.find() method
       },
 
-      // Override the setter for 'something'
+      // Override the instance setter
       set$something: function(val) {
-        // Use this.\_super() to invoke superclass' method!
-        this._super(val + ' blah');
+        this._super(val + ' blah'); // Calls MyClass#something setter
       },
 
-      // Override doSomethin()
-      // object instance
+      // Override doSomething()
       bind$doSomething: function() {
-        // (function implementation)
+        // this == MySubclass instance, regardless of how invoked
+        this._super();  // Calls MyClass#doSomething()
       }
     });
 
