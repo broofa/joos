@@ -8,27 +8,31 @@
    */
   var nilf = function() {};
 
-  /* Copy properties from 'src' object to 'dst' object.
+  /* Copy properties from one or more objects
    *
    * dst - object properties are copied to (if null, a new object is created)
-   * src - object properties are copied from
+   * ... - object(s) to copy properties from
    *
    * Returns: dst, or the newly created object
    *
    * Use: joos.extend()
    */
-  function extend(dst, src) {
+  function extend(dst) {
+    var a = arguments, l = a.length;
     if (!dst) dst = {};
-    if (src) for (var k in src) dst[k] = src[k];
+    while (l-- > 1) {
+      var src = a[l];
+      if (src) for (var k in src) dst[k] = src[k];
+    }
     return dst;
   }
 
   /* Return a function that invokes 'f' with the 'this' property bound to a
-   * specific object.  This returned function has a 'boundFunction' property that
-   * can be used to reference the original function (f).  Note that if 'f' is a
-   * binder function already (i.e. a function returned by this method), the
-   * original function is used instead.  E.g. "joos.bind(joos.bind(f), obj)" is
-   * identical to "joos.bind(f, obj)";
+   * specific object.  This returned function has a 'boundFunction' property
+   * that can be used to reference the original function (f).  Note that if 'f'
+   * is a binder function already (i.e. a function returned by this method),
+   * the original function is used instead.  E.g. "joos.bind(joos.bind(f),
+   * obj)" is identical to "joos.bind(f, obj)";
    *
    * f    - function to invoke
    * obj  - object to assign 'this' to
@@ -38,7 +42,7 @@
    * Use: joos.bind()
    */
   function bind(f, obj) {
-    if (!obj) throw new Error('obj not defined');
+    if (!obj) _err(Error('obj not defined'));
     while (f.boundFunction) f = f.boundFunction;
     var ff = function binder() {
       return f.apply(obj, arguments);
@@ -55,7 +59,22 @@
    *
    * Use: joos.isFunction()
    */
-  function isFunction(o) {return o && o.call && o.apply;}
+  function isFunction(o) {return o && o.apply;}
+
+  /* Throw an exception, optionally opening debugger if page location
+   * contains 'joosdebug'. (e.g. "http"//....?joosdebug")
+   *
+   * e - Error object to throw
+   *
+   * Use: (private)
+   */
+  function _err(e) {
+    if (/joosdebug/i.test(location)) {
+      console.error(e);
+      debugger;
+    }
+    throw e;
+  }
 
   /* Return an object that inherits properties from another object
    *
@@ -63,8 +82,9 @@
    *
    * Use: (private)
    */
-  function _getPrototypedObject(proto) {
-    var f = function ProtoObject() {};
+  function _prototypify(proto) {
+    if (!proto) return {};
+    var f = function _prototypifier() {};
     f.prototype = proto;
     return new f();
   }
@@ -73,7 +93,7 @@
    *
    * Use: (private)
    */
-  var _fnTest = /xyz/.test(function(){xyz;}) ? /\bthis\._super\b/ : /.?/;
+  var _fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : false;
 
   /* Return a function that enables calls to "this._super()" from within a
    * function, 'f', where _super refers to 'superf'.
@@ -86,18 +106,66 @@
    *
    * Use: (private)
    */
-  function _superify(f, superf, fdbg) {
-    if (!isFunction(f) || !_fnTest.test(f)) return f;
-    if (!isFunction(superf)) throw new Error('this._super in ' + fdbg
-      + ' could not be resolved');
+  function _superify(f, superf, proto, fdbg) {
+    if (!_fnTest || !isFunction(f) || !_fnTest.test(f)) return f;
+    if (!isFunction(superf)) _err(Error('no super-method found for ' + fdbg));
 
-    return function() {
-      var tmp = this._super;
-      this._super = superf;
+    return function _superifier() {
+      var me = proto || this, tmp = me._super;
+      me._super = superf;
       var ret = f.apply(this, arguments);
-      tmp === undefined ? (delete this._super) : (this._super = tmp);
+      tmp === undefined ? (delete me._super) : (me._super = tmp);
       return ret;
     };
+  }
+
+  function _processAPI(apid, force) {
+    if (!apid.__joosCache || force) {
+      // Preprocess apid keys
+      var api = apid.__joosCache = {};
+      for (var key in apid) {
+        var splits = key.split('$'), name = splits.pop();
+
+        // Name-less keys are dealt with elsewhere
+        if (!name || key == '__joosCache') continue;
+
+        // Create member info, set modifier flags
+        var member = {name:name};  // Info object for this member.
+        while (splits.length) {
+          var modifier = splits.shift() || 'STATIC';
+          member[modifier.toUpperCase()] = true;
+        }
+
+        // Merge member definitions(?)
+        var memberKey = (member.STATIC ? '+' : '-') + name;
+        var lmember = api[memberKey];
+        if (member.GET || member.SET) {
+          member[member.GET ? 'GET' : 'SET'] = apid[key];
+          if (lmember) member = extend(lmember, member);
+        } else {
+          if (lmember) _err(Error('found duplicate ' + memberKey + ' definition'));
+          member.value = apid[key]; // "value" == member value
+        }
+        if (!lmember) api[memberKey] = member;
+      }
+    }
+
+    return apid.__joosCache;
+  }
+
+  // Set up metadata cache where we store various info we'll need later
+  function _metafy(obj, superObj) {
+    if (!obj.__meta) {
+      var smeta = superObj && superObj.__meta;
+      obj.__meta = {
+        // methods that need to be bound during initialize
+        binds: (superObj && smeta) ? _prototypify(smeta.binds) : {},
+        hasBinds: smeta && smeta.hasBinds,
+        // Superclass, if applicable
+        superclass: null
+      };
+    }
+    return obj.__meta;
   }
 
   /* Define a getter/setter ("xetter") propert on an object. (This is just a wrapper around
@@ -105,154 +173,160 @@
    *
    * obj    - object the xetter applies to
    * name   - name of the property in question
-   * mod    - defines the type of xetter, either 'get' or 'set'
+   * mod    - defines the type of xetter, either 'GET' or 'SET'
    * xetter - function that does the get or set operation
    *
    * Returns: undefined
    *
    * Use: (private)
    */
-  function _applyXetter(obj, name, mod, xetter) {
+  function _applyXetter(obj, name, xet, xetter) {
+    if (!/^[GS]ET$/.test(xet)) _err(Error('unexpected xet: ' + xet));
     if (Object.defineProperty) {
-      Object.defineProperty(obj, name, mod == 'get' ? {get:xetter} : {set:xetter});
+      Object.defineProperty(obj, name, xet == 'GET' ? {get:xetter} : {set:xetter});
     } else if (obj.__defineGetter__) {
-      obj[mod == 'get' ? '__defineGetter__' : '__defineSetter__'](name, xetter);
+      obj[xet == 'GET' ? '__defineGetter__' : '__defineSetter__'](name, xetter);
     } else {
       // We could do some sort of munging to create setFoo/getFoo methods
       // but it's not clear that would be helpful.  So just throw a wobbly ...
-      throw new Error('No support for getter/setter methods');
+      _err(Error('No support for getter/setter methods'));
     }
   }
 
   /* Extend a class or object in really bitchin' ways.  This is the heart of
-   * joos' OO support and, honestly, I'm not sure there's a clear, concise
-   * way of explaining exactly what goes on here.  I've tried to do a good
-   * job documenting the source however.
+   * joos' OO support.  Describing what this does in detail is non-trivial so
+   * just read the (well-documented) source code.
    *
-   * obj        - class or object to be extended
-   * apid       - API definition object
-   * [superObj] - object that 'this._super' references should point at
+   * obj      - class or object to be extended
+   * superObj - object that 'this._super' references should point at
+   * apid     - API definition object
+   * isClass  - if true, obj is expected to be a class constructor.
    *
    * Returns: obj
    *
    * Use: (private)
    */
-  function _extend(obj, apid, superObj) {
-    if (!obj || !apid) throw new Error('obj or apid is not defined');
+  function _extend(obj, superObj, apid, isClass) {
+    var meta = _metafy(obj, superObj);
 
-    // Set up metadata cache where we store various info we'll need later
-    var meta = obj.__meta;
-    if (!meta) {
-      meta = obj.__meta = {
-        xetters: {}, // declared getter/setter methods
-        binds: {},   // methods that need to be bound during initialize
-        superclass: superObj // The declared super object
-      };
+    // Get processed APID structure
+    var api = meta.api = _processAPI(apid);
 
-      // If there's a superclass with meta info, make sure we inherit it's
-      // bound properties
-      if (superObj && superObj.__meta) meta.binds = _getPrototypedObject(superObj.__meta.binds);
-    };
+    // Detect classes that require setting _super on the prototype in order for
+    // superifying to work
+    var nativeSuper = (superObj === Number || superObj === String);
 
-    // We're done dealing with the declared superObj, so switch to the one
-    // we're gonna actually use
-    superObj = superObj || obj.__meta.superclass || obj.superclass || obj._superclass || obj;
+    // Apply each member
+    for (var memberKey in api) {
+      var member = api[memberKey], name = member.name;
+      var dst = obj, superDst = superObj, protoForSuper = false;
+      var value = member.value;
 
-    // Are we dealing with a class, or some other sort of object?
-    var objIsClass = !!obj.prototype;
+      // Ignore static members for non-classes
+      if (member.STATIC && !isClass) continue;
 
-    // For each key in the API definition ...
-    for (var key in apid) {
-      var member = apid[key];
-
-      // Parse key for name & modifier(s).  This is a bit simplistic, but works
-      // well enough for now.
-      var words = key.split('$'), name = words.pop(), mod = words.shift();
-      var isStatic = mod === '' || mod == 'static';
-
-      // If the modifier is 'static', there might be another one, so grab that.
-      // E.g. "static$get$foo"
-      if (isStatic) mod = words.shift();
-
-      // Ignore static members when not working with a class
-      if (isStatic && !objIsClass) continue;
-
-      // Standalone modifiers (that don't operate on a specific APID member),
-      // like initialize$ and superclass$, are all currently handled elsewhere,
-      // so we can ignore them
-      if (!name) continue;
-
-      // Figure out which object's we're *really* dealing with
-      var target = obj, superTarget = superObj;
-      var useProto = !isStatic && objIsClass;
-      if (useProto) {
-        target = target.prototype;
-        superTarget = superTarget.prototype;
+      // If non-static member, and a class, switch to prototypes
+      if (!member.STATIC && isClass) {
+        dst = dst.prototype;
+        superDst = superDst.prototype;
+        protoForSuper = nativeSuper && superDst;
       }
 
-      // Apply APID member to the object, as per the modifier
-      if (mod == 'get' || mod == 'set') {
-        // We have to process getter/setters in pairs, so just build up a list
-        // of what's defined here.  We'll process it in a seperate loop, below.
-        var xk = key.replace(/(get|set)\$/, 'xet$');
-        var xet = meta.xetters[xk];
-        if (!xet) xet = meta.xetters[xk] = {target:target, name:name, mod: mod};
-        xet[mod] = member;
-      } else {
-        // Enable 'this._super' support if needed
-        member = _superify(member, superTarget[name], key);
+      if (member.BIND) {
+        if (!isFunction(value)) _err(Error(name + ' is not a function'));
 
-        if (mod == 'bind') {
-          if (!isFunction(member)) throw new Error(key + ' is not a function');
-          if (objIsClass && useProto) {
-            // Instance method: Store the name of the method so we can bind it
-            // to object instances in the constructor function.
-            // See "JoosClass" constructor function, below
-            meta.hasBinds = meta.binds[name] = true;
-          } else {
-            // Either obj isn't a class, or we're dealing with a class member:
-            // Bind it to the object
-            member = joos.bind(member, obj);
-          }
+        if (isClass && !member.STATIC) {
+          if (!meta.isJoosClass) _err(Error(name + ' can\'t be bound by non-joos class'));
+          // Instance method: Store the name of the method so we can bind it
+          // to object instances in the constructor function.
+          // See "JoosClass" constructor function, below
+          meta.hasBinds = meta.binds[name] = true;
+        } else {
+          // Bind it to the object
+          value = joos.bind(value, dst);
         }
+      }
 
-        // Assign the APID member to the object
-        target[name] = member;
+      if (member.GET || member.SET) {
+        if (member.BIND) _err(Error('Binding not supported for getter/setters (' + name + ')'));
+
+        // Process xetters in get/set pairs, even though they may not be
+        // declared in pairs in the APID
+        for (var i = 0; i < 2; i++) {
+          var xet = i ? 'SET' : 'GET',  // getter .vs. setter
+              value = member[xet];        // get/setter function
+
+          // Yup, xetters have to be functions
+          if (value && !isFunction(value)) _err(Error(xet + '$' + name + ' is not a function'));
+
+          // See if we can find a super-function for this xetter
+          var superf = superObj.__meta;
+          if (superf && (superf = superf.api[memberKey])) superf = superf[xet];
+
+          // If value is defined, enable this._super support.  If not, use the
+          // super-function (if available)
+          value = value ? _superify(value, superf, protoForSuper, name) : superf;
+
+          // To Do: Refine this warning.  There are times when getter/setters need to be defined in
+          // pairs.
+          // if (!value && mod) _err(Error(mod + '$' + name + ' must be defined'));
+          if (value) _applyXetter(dst, name, xet, value);
+        }
+      } else {
+        // Simple case - straight-up assign
+        dst[name] = _superify(value, superDst[name], protoForSuper, name);
       }
     }
+  }
 
-    // Process getter/setter pairs
-    for (var xk in meta.xetters) {
-      var xet = meta.xetters[xk], name = xet.name;
-
-      // Process xetters in get/set pairs, even though they may not be declared
-      // in pairs in the APID
-      for (var i = 0; i < 2; i++) {
-        var mod = i ? 'set' : 'get',  // getter .vs. setter
-            member = xet[mod];        // get/setter function
-
-        // Yup, xetters have to be functions
-        if (member && !isFunction(member)) throw new Error(mod + '$' + name + ' is not a function');
-
-        // See if we can find a super-function for this xetter
-        var superf = superObj.__meta;
-        if (superf && (superf = superf.xetters[xk])) superf = superf[mod];
-
-        // If member is defined, enable this._super support.  If not, use the
-        // super-function (if available)
-        member = member ? _superify(member, superf, xk) : superf;
-
-        // To Do: Refine this warning.  There are times when getter/setters need to be defined in
-        // pairs.
-        // if (!member && mod) throw new Error(mod + '$' + name + ' must be defined');
-        if (member) _applyXetter(xet.target, name, mod, member);
-      }
-    }
-
-    // Invoke static initializer, if provided
-    if (apid.initialize$) apid.initialize$.call(obj);
+  /* Create un-init'ed prototype by short-circuiting the initialize method.
+   * (Note: While it would be simpler to have a private flag in the
+   * constructor function that we could use to turn off the call to the init
+   * method, this approach will allow us to play nice with classes created by
+   * other libraries)
+   *
+   * klass - Class to instantiate
+   *
+   * Returns: un-initialized instance of klass
+   *
+   * Use: (private)
+   */
+  function _uninitedInstance(klass) {
+    var proto = klass.prototype, oldinit = proto.initialize;
+    proto.initialize = nilf;
+    var obj = new klass();
+    delete proto.initialize;
+    // (initializer may be inherited, so we still have to check)
+    if (proto.initialize !== oldinit) proto.initialize = oldinit;
 
     return obj;
+  }
+
+  function _makeClass(sklass) {
+    sklass = sklass || Object;
+
+    // Create the class constructor function
+    var klass = function JoosClass() {
+      var init = this.initialize;
+
+      // bind 'bind$...' functions to this instance
+      if (meta.hasBinds) for (var k in meta.binds) {
+        if (k == 'fireChanged') console.log('binding ' + k + ' ' + this.id);
+        this[k] = bind(this[k], this);
+      }
+
+      // Call this.initialize()
+      if (init != nilf && init) init.apply(this, arguments);
+    };
+
+    // Create the class' meta info object
+    var meta = extend(_metafy(klass, sklass), {superclass: sklass, isJoosClass: true});
+
+    // Create class prototype
+    klass.prototype = _uninitedInstance(sklass);
+    klass.prototype.constructor = klass;
+
+    return klass;
   }
 
   /* Create a new class.
@@ -264,45 +338,51 @@
    * Use: joos.createClass()
    */
   function createClass(apid) {
-    apid = apid || {};
-    var sklass = apid.superclass$ || Object, sproto = sklass.prototype;
+    var klass = _makeClass(apid.superclass$);
+    if (apid) _extend(klass, klass.__meta.superclass, apid, true);
+    if (apid.initialize$) apid.initialize$.call(klass);
+    return klass;
+  };
 
-    // Create the class constructor function
-    var klass = function JoosClass() {
-      var init = this.initialize;
-      // bind 'bind$...' functions to this instance
-      for (var k in klass.__meta.binds) this[k] = bind(this[k], this);
+  /* Add methods and properties to a class
+   *
+   * klass - Class to enhance
+   * apid - API definition object
+   *
+   * Returns: klass
+   *
+   * use: joos.extendClass()
+   */
+  function extendClass(klass, apid) {
+    _extend(klass, klass, apid, true);
+    if (apid.initialize$) apid.initialize$.call(klass);
+    return klass;
+  };
 
-      // Call this.initialize()
-      if (init != nilf && init) init.apply(this, arguments);
-    };
-
-    // Create un-init'ed prototype by short-circuiting the initialize method.
-    // (Note: While it would be simpler to have a private flag in the
-    // constructor function that we could use to turn off the call to the init
-    // method, this approach will allow us to play nice with classes created by
-    // other libraries)
-    var oldinit = sproto.initialize;
-    sproto.initialize = nilf;
-    klass.prototype = new sklass();
-    delete sproto.initialize;
-    if (sproto.initialize !== oldinit) sproto.initialize = oldinit;
-
-    // Make sure constructor is set
-    klass.prototype.constructor = klass;
-
-    // Apply the rest of the class definition
-    return _extend(klass, apid, sklass);
-  }
+  /* Add methods and properties to an object.  Properties of 'apid' with the
+   * static$ (or '$') modifier are ignored.
+   *
+   * obj - Object to enhance
+   * apid - API definition object
+   *
+   * Returns: obj
+   *
+   * use: joos.extendObject()
+   */
+  function extendObject(obj, apid) {
+    _extend(obj, obj, apid, false);
+    if (apid.initialize$) apid.initialize$.call(obj);
+    return obj;
+  };
 
   // Create the joos object, with the properties we want to make public
   self.joos = {
     // The main joos API  ...
     createClass: createClass,
-    extendClass: _extend,
-    extendObject: _extend,
+    extendClass: extendClass,
+    extendObject: extendObject,
 
-    // Useful methods we make available because... well... they're useful
+    // Useful methods we might as well make available
     nilf: nilf,
     bind: bind,
     isFunction: isFunction,

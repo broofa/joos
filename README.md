@@ -6,13 +6,13 @@ joos **is**:
 
   * Lightweight - &lt; 1.5KB minified and gzipped
   * Library agnostic - Use it with jQuery, Prototype, Ext... whatever.
-  * Powerful - Supports OO constructs that aren
-  * Elegant - joos-enabled code is more readable, and just *looks* better
+  * Powerful - Supports OO constructs that aren't typically available in JS or other 3rd-party JS libraries.
+  * Intuitive - joos-enabled code is more readable, and easier to organize.  And it just *looks* better
   * Cross-platform - Urrr... well... sort of.  I need to spec out what the exact browser support story is.
 
 joos **is not**:
 
-  * A new language
+  * A [new] compiled language
   * A replacement for existing libraries.
 
 ## API Definition Objects (APID's)
@@ -35,17 +35,15 @@ If used in conjunction with static$, 'this' will refer to the class object.
 
 Note: When using joos.extendClass() to enhance a non-joos class, non-static bind$s will produce an error.
 
-### **get**$*name*
-### **set**$*name*
+### **get**$*name* / **set**$*name*
 Applies the *name* function using built-in getter/setter support.
 
 Note: get$ and set$ will produce errors on older browsers [TODO: such as?]
 
-### **static**$*name*
-### $*name*
+### **static**$*name* / $*name*
 Identifies *name* as a static (class) member, as opposed to a prototype member.
 
-This can be abbreviated as just "$".  "$*name*" is identical to "static$*name*"
+The static$ modifier can be abbreviated as simple, "$".  I.e. "$*name*" is identical to "static$*name*"
 
 ### **superclass**$
 Specifies the superclass to inherit from
@@ -146,7 +144,7 @@ Again, not very interesting.  So lets flesh it out a bit:
     });
 
 ### joos.extendClass()
-joos.extendClass() allows you to add members to an existing class.  This works for _any_ class, not just those created with joos.createClass.  For example, to extend the native Array class:
+joos.extendClass() allows you to enhance existing classes.  This works for _any_ class, not just those created with joos.createClass.  For example, to extend the native Array class:
 
     joos.extendClass({
       // Define Array.SOME_CONSTANT
@@ -168,5 +166,43 @@ joos.extendClass() allows you to add members to an existing class.  This works f
 
 ### joos.extendObject()
 
-joos.extendObject() allows you to extend object instances in much the same way you would extend a class.  This allows you to easily leverage the powerful "mixin" pattern.
+joos.extendObject() allows you to extend object instances in much the same way you would extend a class.  This allows you to leverage the powerful "mixin" pattern.  For example, to give a DOM widget "collapsable" behavior, you could do this:
 
+    // First, we define the Collapsable APID...
+    var Collapsable = {
+      // Static constant.
+      $CONTENT\_CLASS: 'content',
+
+      initialize$: function() {
+        // Initialize the object being extended
+        // ('this' refers to the object)
+        this.addEventListener('click', this.handleClick);
+      },
+
+      destroy: function() {
+        this.removeEventListener('click', this.handleClick);
+      },
+
+      bind$handleClick: function() {
+        this.collapsed = !this.collapsed
+      },
+
+      bind$\_getContent: function() {
+        return this.getElementsByClassName(Collapsable.$CONTENT\_CLASS)[0];
+      }
+      
+      // Add support for the 'collapsed' property
+      get$collapsed: function() {
+        return this.\_getContent().style.display == 'none';
+      },
+      set$collapsed: function(v) {
+        this.\_getContent().style.display = v ? 'none' : '';
+      }
+    }
+
+    // Then, to apply Collapsable to an element, we do ...
+    joos.extendObject(*someElement*, Collapsable);
+
+There are a couple things to note here.  First, extendObject() ignores static$ members in your APID.  Which is nice, because it allows you to include static members in your code.  However - and this is something that may be addressed in a future version of joos - it requires that you reference them using the exact property name in the APID; e.g. "$CONTENT\_CLASS" as opposed to "CONTENT\_CLASS".
+
+Also, note that in methods, 'this' refers to the object being extended.  And that it is bindable using bind$, which is just damn cool when setting up event handlers, like handleClick, above.

@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<script src="../joos.js"></script>
+<script src="http://broofa.com/Tools/JSLitmus/JSLitmus.js"></script>
+<style>
+body {font-family: sans-serif;}
+.pass {font-size: 80%;}
+</style>
+<script src="joostest.js"></script>
+</head>
+<body>
+<script>
+
+var nilf = function() {};
+var nilff = function() {return nilf();};
+
+var superObj = {
+  baseMethod: nilf
+};
+
+function superify(f, superf) {
+  return function() {
+    var tmp = this._super, a = arguments;
+    this._super = superf;
+    var retval = a.length ? f.apply(this, a) : f.call(this);
+    this._super = tmp;
+    return retval;
+  }
+}
+
+var testObj = {
+  // Classic move-aside inheritance
+  classic_super: superObj.baseMethod,
+  classic: function() {
+    return this.classic_super();
+  },
+
+  prototypical: function() {
+    var a = arguments;
+    return superObj.baseMethod();
+  },
+
+  prototypical2: function() {
+    return superObj.baseMethod();
+  },
+
+  prototypical3: function(a,b,c,d,e,f) {
+    var args = arguments;
+    switch (args.length) {
+      case 0: return superObj.baseMethod();
+      case 1: return superObj.baseMethod(a);
+      case 2: return superObj.baseMethod(a,b);
+      case 3: return superObj.baseMethod(a,b,c);
+      case 4: return superObj.baseMethod(a,b,c,d);
+      case 5: return superObj.baseMethod(a,b,c,d,e);
+      case 6: return superObj.baseMethod(a,b,c,d,e,f);
+    }
+    return superObj.baseMethod();
+  },
+
+  joos: superify(function(x) {return this._super(x);}, superObj.baseMethod)
+};
+
+window.onload = function() {
+  JSLitmus.test('nilf', function(count) {
+    var obj = testObj;
+    while (count--) nilf();
+  });
+
+  JSLitmus.test('classic inheritance', function(count) {
+    var obj = testObj;
+    while (count--) obj.classic(count);
+  });
+
+  JSLitmus.test('prototypical', function(count) {
+    var obj = testObj;
+    while (count--) obj.prototypical(count);
+  });
+
+  JSLitmus.test('prototypical2', function(count) {
+    var obj = testObj;
+    while (count--) obj.prototypical2(count);
+  });
+
+  JSLitmus.test('prototypical3', function(count) {
+    var obj = testObj;
+    while (count--) obj.prototypical3(count);
+  });
+
+  JSLitmus.test('joos: no args', function(count) {
+    var obj = testObj;
+    while (count--) obj.joos();
+  });
+
+  JSLitmus.test('joos: w/ args', function(count) {
+    var obj = testObj;
+    while (count--) obj.joos(count);
+  });
+};
+
+</script>
+</body>
+</html>

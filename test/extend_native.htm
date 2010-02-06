@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<script src="../joos.js"></script>
+<style>
+body {font-family: sans-serif;}
+.pass {font-size: 80%;}
+</style>
+<script src="joostest.js"></script>
+</head>
+<body>
+<script>
+
+var TYPES = {
+  "Array": [],
+  "Boolean": true,
+  "Date": new Date(),
+  "Error": Error('some error'),
+  "Function": function someFunction() {},
+  "Math": null,
+  "Number": 123,
+  "RegExp": /regexp/i,
+  "String": "abc"
+};
+
+var test = {
+  setup: function() {
+    var API = {
+      // static members
+      $FOO: 12,
+      $_bar: 34,
+      static$getX: function(x) {return 'class ' + this._super(x);},
+      static$get$bar: function() {return this._bar;},
+      static$set$bar: function(v) {this._bar = v;},
+
+      // instance members
+      foo: 12,
+      _baz: 56,
+      getx: function(x) {return 'class ' + this._super(x);},
+      get$baz: function() {return this._baz;},
+      set$baz: function(v) {this._baz = v;}
+    };
+
+    // Define a super method that we can invoke to check inheritance
+    for (var type in TYPES) {
+      var val = TYPES[type];
+      klass = self[type];
+
+      if (!val) {
+        val = klass;
+        klass = null;
+      }
+
+      var proto = klass ? klass.prototype : val;
+
+      val._foo = 'foo';
+      proto._locked = val._foo != 'foo';
+      delete val._locked;
+
+      if (klass) klass.getX = function(X) {return  'X:' + X;};
+      proto.getx = function(x) {return  'x:' + x;};
+
+      if (klass) {
+        joos.extendClass(klass, API);
+      } else {
+        joos.extendObject(val, API);
+      }
+    }
+  },
+
+  teardown: function() {},
+
+  commonTests: function() {
+    // static member tests
+    if (this.klass) {
+      this.isEqual(this.klass.FOO, 12, 'static var');
+      if (this.obj) this.isEqual(this.obj.foo, 12, 'var');
+
+      this.klass._bar = 34;
+      this.isEqual(this.klass.bar, 34, 'static getter');
+      this.klass.bar = 'not 34';
+      this.isEqual(this.klass.bar, 'not 34', 'static setter');
+    }
+
+    // instance member tests
+    if (!this.obj._locked) {
+      this.obj.narf = 90;
+      this.isEqual(this.obj.narf, 90, 'settable instance properties');
+
+      this.obj._baz = 78;
+      this.isEqual(this.obj.baz, 78, 'getter');
+
+      this.obj.baz = 'not 78';
+      this.isEqual(this.obj.baz, 'not 78', 'setter');
+    } else {
+      joostest.log('Instances are not writeable - Skipping object tests', 'warn');
+    }
+  }
+};
+
+for (var type in TYPES) {
+  var val = TYPES[type];
+  var klass = self[type];
+
+  test['test' + type] = (function(klass, obj) {
+   return function() {
+    this.klass = obj ? klass : null;
+    this.obj = obj || klass;
+    this.include('commonTests');
+   };
+  })(klass, TYPES[type]);
+}
+
+
+
+joostest.test(test);
+
+window.onload = joostest.run;
+</script>
+</body>
+</html>

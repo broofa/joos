@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<script src="../joos.js"></script>
+<style>
+body {font-family: sans-serif;}
+.pass {font-size: 80%;}
+</style>
+<script src="joostest.js"></script>
+</head>
+<body>
+<script>
+
+window.onload = joostest.run;
+
+joostest.test({
+  setup: function() {
+    this.MyClass = joos.createClass({
+      initialize$: function() {this.inited = 'MyClass';},
+      initialize: function() {this.inited = 'a';},
+
+      $_simpson: 'bart',
+      $get$simpson: function() {return this._simpson + '!'},
+      $set$simpson: function(val) {this._simpson = val;},
+
+      get$getterOnly: function() {return 'get only';},
+      set$setterOnly: function() {},
+
+      _car: 'edsel',
+      get$car: function() {return this._car + '!'},
+      set$car: function(val) {this._car = val;},
+
+      _apple: 'fuji',
+      get$apple: function() {return this._apple + '!'},
+      set$apple: function(val) {this._apple = val;},
+
+      _null: null
+    });
+
+    this.MySubclass = joos.createClass({
+      superclass$: this.MyClass,
+      $BAR: 'BAR',
+      initialize$: function() {this.inited = 'MySubclass';},
+      initialize: function() {this.inited = 'b';},
+
+      set$car: function(val) {this._car = val;},
+
+      $_simpson: 'homer',
+      $get$simpson: function() {return this._super() + '!'},
+      $set$simpson: function(val) {this._super('!' + val);},
+
+      _apple: 'braeburn',
+      get$apple: function() {return this._super() + '!';},
+      set$apple: function(val) {this._super('!' + val);},
+
+      _null: null
+    });
+  },
+
+  teardown: function() {},
+
+  testClass: function() {
+    this.isEqual(this.MyClass.inited, 'MyClass', 'static initializer called');
+    this.isEqual(this.MyClass._simpson, 'bart', 'static var set');
+    this.isEqual(this.MyClass.simpson, 'bart!', 'static getter works');
+    this.MyClass.simpson = 'lisa';
+    this.isEqual(this.MyClass.simpson, 'lisa!', 'static setter works');
+
+    var a = new this.MyClass();
+    this.isTrue(a instanceof this.MyClass, 'instanceof');
+    this.isEqual(a.car, 'edsel!', 'car getter');
+    a.car = 'ford';
+    this.isEqual(a.car, 'ford!', 'car setter');
+
+    this.isEqual(a._apple, 'fuji', 'instance var set');
+    this.isEqual(a.inited, 'a', 'instance initializer called');
+    this.isEqual(a.apple, 'fuji!', 'getter works');
+    a.apple = 'bar';
+    this.isEqual(a.apple, 'bar!', 'setter works');
+  },
+
+  testSubclass: function() {
+    this.isEqual(this.MySubclass.inited, 'MySubclass', 'static initializer called');
+    this.isEqual(this.MySubclass._simpson, 'homer', 'static var set');
+    this.isEqual(this.MySubclass.simpson, 'homer!!', 'static getter works');
+
+    this.MySubclass.simpson = 'marge';
+    this.isEqual(this.MySubclass.simpson, '!marge!!', 'static setter works');
+
+    var b = new this.MySubclass();
+    this.isTrue(b instanceof this.MyClass, 'instanceof superclass');
+    this.isTrue(b instanceof this.MySubclass, 'instanceof class');
+    this.isFalse(b instanceof Date, 'instanceof other class');
+    this.isEqual(b.car, 'edsel!', 'car getter');
+    b.car = 'ford';
+    this.isEqual(b.car, 'ford!', 'car setter');
+
+    this.isEqual(b._apple, 'braeburn', 'instance var set');
+    this.isEqual(b.inited, 'b', 'instance initializer called');
+    this.isEqual(b.apple, 'braeburn!!', 'getter works');
+    b.apple = 'mcintosh';
+    this.isEqual(b.apple, '!mcintosh!!', 'setter works');
+  }
+});
+</script>
+</body>
+</html>

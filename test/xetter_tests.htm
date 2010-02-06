@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<script src="../joos.js"></script>
+<style>
+body {font-family: sans-serif;}
+.pass {font-size: 80%;}
+</style>
+<script src="joostest.js"></script>
+</head>
+<body>
+<script>
+
+window.onload = joostest.run;
+
+joostest.test({
+  setup: function() {
+  },
+
+  teardown: function() {},
+
+  testXetters: function() {
+    var A = joos.createClass({
+      _c: 'c',
+      get$a: function() {return 'A:a';},
+      get$b: function() {return 'A:b';},
+      get$c: function() {return this._c;},
+      set$d: function() {return this._d;}
+    });
+    var B = joos.createClass({
+      superclass$: A,
+      get$a: function() {return 'B:a';},
+      get$b: function() {return this._super() + '+B';},
+      set$c: function(v) {this._c = v;},
+      set$e: function() {return this._e;}
+    });
+
+    var a = new A();
+    this.isEqual(a.a, 'A:a');
+    a.d = 'd';
+
+    var b = new B();
+    b.e = 'test';
+    this.isEqual(b.a, 'B:a');
+    this.isEqual(b.b, 'A:b+B');
+
+    b.c = 'test';
+    this.isEqual(b.c, 'test');
+  }
+});
+</script>
+</body>
+</html>
