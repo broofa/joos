@@ -1,5 +1,6 @@
-// Copyright 2010, Robert Kieffer. Dual licensed under MIT and GPLv2 licenses.
-// You are free to use this code as long as this copyright header remains intact
+// Copyright 2010, Robert Kieffer. Dual licensed under MIT and GPLv2
+// licenses.  You are free to use this code as long as this copyright header
+// remains intact
 
 (function() {
   /* Empty function (for stubbing out callbacks, etc.)

@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<script src="../joos.js"></script>
+<style>
+/* Nothing interesting here - just some basic styling.  Move along. :) */
+body {font-family: sans-serif;}
+.log {
+  float: left;
+  width: 40%;
+  min-height: 200px;
+  max-height: 400px;
+  border: solid 1px black;
+  overflow: auto;
+}
+.log_message {
+  font-family: monospace;
+  font-size: 9pt;
+}
+</style>
+
+<!-- Include joos.  The HEAD is as good a spot as any. -->
+<script src="joostest.js"></script>
+</head>
+<body>
+
+<p>This demo illustrates how joos can be used to define an API that can be mixed into object instances.  In this case, we define a "Loggable" API that is used to extend a couple of DIVs, to give them logging capabilities.  Please view source for detailed comments.</p>
+
+<!-- The divs we'll be making Loggable -->
+<div id="log1" class="log"></div>
+<div id="log2" class="log"></div>
+
+<script>
+// Define the APID object
+var Loggable = {
+  // Static method.  Extended objects do _not_ get this.  It is invoked via
+  // "Loggable.$timeString()"
+  $timeString: function() {
+    return (/\d\d:\d\d:\d\d/.exec(new Date()))[0];
+  },
+
+  // Define the 'prompt' property
+  get$prompt: function() {return this._prompt || '> ';},
+  set$prompt: function(v) {this._prompt = v;},
+
+  // Override the appendChild method to take a string instead of an element.
+  //
+  // Ordinarily this you probably wouldn't do this, choosing instead to just
+  // call this method "log" or something more intuitive. But we want to
+  // illustrate how it's possible to override an existing method while still
+  // being able to call the replaced method using "this._super"
+  appendChild: function(msg) {
+    // Create the log message element we want to add to the element
+    var el = document.createElement('div');
+    el.className = 'log_message';
+    el.innerHTML = Loggable.$timeString() + this.prompt + msg;
+
+    // Invoke the native appendChild method. Pretty cool, huh!
+    this._super(el);
+    el.scrollIntoView();
+  },
+
+  // Create a logEvent method that can act as an event listener.  We use
+  // 'bind$' to insure that 'this' will always refer to the log element we pass
+  // into extendObject (below).
+  bind$logEvent: function(e) {
+    e = e || window.event;
+    if (/key/.test(e.type)) {
+      var code = e.charCode || e.keyCode;
+      this.appendChild(e.type + ' ' + (e.charCode || e.keyCode));
+    } else {
+      this.appendChild(e.type + ' ' + e.screenX + ' ' + e.screenY);
+    }
+  }
+};
+
+// When document is loaded ...
+window.onload = function() {
+  // For each 'log' element ...
+  var logs = document.getElementsByClassName('log');
+  for (var i = 0; i < logs.length; i++) {
+    var log = logs[i];
+
+    // Use joos to mix in the Loggable API
+    joos.extendObject(log, Loggable);
+
+    // Set the prompt to show it the id
+    log.prompt = ' #' + log.id + '> ';
+
+    // Listen for some events using the [bound] logEvent method
+    log.addEventListener('mousemove', log.logEvent, false);
+    document.addEventListener('keydown', log.logEvent, false);
+
+    // ... and let user know it's ready
+    log.appendChild('Log ready.<br />Move mouse over this log area to see events being logged, or type to see keystrokes logged in all log areas');
+  }
+};
+</script>
+</body>
+</html>
