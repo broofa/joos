@@ -3,6 +3,21 @@
 // remains intact
 
 (function() {
+  /* Throw an exception, optionally opening debugger if page location
+   * contains 'joosdebug'. (e.g. "http"//....?joosdebug")
+   *
+   * e - Error object to throw
+   *
+   * Use: (private)
+   */
+  function error(e) {
+    if (/joosdebug/i.test(location)) {
+      if (self.console) self.console.error(e);
+      debugger;
+    }
+    throw e;
+  }
+
   /* Empty function (for stubbing out callbacks, etc.)
    *
    * Use: joos.nilf
@@ -43,7 +58,7 @@
    * Use: joos.bind()
    */
   function bind(f, obj) {
-    if (!obj) _err(Error('obj not defined'));
+    if (!obj) error(Error('obj not defined'));
     while (f.boundFunction) f = f.boundFunction;
     var ff = function binder() {
       return f.apply(obj, arguments);
@@ -61,21 +76,6 @@
    * Use: joos.isFunction()
    */
   function isFunction(o) {return o && o.apply;}
-
-  /* Throw an exception, optionally opening debugger if page location
-   * contains 'joosdebug'. (e.g. "http"//....?joosdebug")
-   *
-   * e - Error object to throw
-   *
-   * Use: (private)
-   */
-  function _err(e) {
-    if (/joosdebug/i.test(location)) {
-      console.error(e);
-      debugger;
-    }
-    throw e;
-  }
 
   /* Return an object that inherits properties from another object
    *
@@ -109,7 +109,7 @@
    */
   function _superify(f, superf, proto, fdbg) {
     if (!_fnTest || !isFunction(f) || !_fnTest.test(f)) return f;
-    if (!isFunction(superf)) _err(Error('no super-method found for ' + fdbg));
+    if (!isFunction(superf)) error(Error('no super-method found for ' + fdbg));
 
     return function _superifier() {
       var me = proto || this, tmp = me._super;
@@ -144,7 +144,7 @@
           member[member.GET ? 'GET' : 'SET'] = apid[key];
           if (lmember) member = extend(lmember, member);
         } else {
-          if (lmember) _err(Error('found duplicate ' + memberKey + ' definition'));
+          if (lmember) error(Error('found duplicate ' + memberKey + ' definition'));
           member.value = apid[key]; // "value" == member value
         }
         if (!lmember) api[memberKey] = member;
@@ -182,7 +182,7 @@
    * Use: (private)
    */
   function _applyXetter(obj, name, xet, xetter) {
-    if (!/^[GS]ET$/.test(xet)) _err(Error('unexpected xet: ' + xet));
+    if (!/^[GS]ET$/.test(xet)) error(Error('unexpected xet: ' + xet));
     if (Object.defineProperty) {
       Object.defineProperty(obj, name, xet == 'GET' ? {get:xetter} : {set:xetter});
     } else if (obj.__defineGetter__) {
@@ -190,7 +190,7 @@
     } else {
       // We could do some sort of munging to create setFoo/getFoo methods
       // but it's not clear that would be helpful.  So just throw a wobbly ...
-      _err(Error('No support for getter/setter methods'));
+      error(Error('No support for getter/setter methods'));
     }
   }
 
@@ -234,10 +234,10 @@
       }
 
       if (member.BIND) {
-        if (!isFunction(value)) _err(Error(name + ' is not a function'));
+        if (!isFunction(value)) error(Error(name + ' is not a function'));
 
         if (isClass && !member.STATIC) {
-          if (!meta.isJoosClass) _err(Error(name + ' can\'t be bound by non-joos class'));
+          if (!meta.isJoosClass) error(Error(name + ' can\'t be bound by non-joos class'));
           // Instance method: Store the name of the method so we can bind it
           // to object instances in the constructor function.
           // See "JoosClass" constructor function, below
@@ -249,7 +249,7 @@
       }
 
       if (member.GET || member.SET) {
-        if (member.BIND) _err(Error('Binding not supported for getter/setters (' + name + ')'));
+        if (member.BIND) error(Error('Binding not supported for getter/setters (' + name + ')'));
 
         // Process xetters in get/set pairs, even though they may not be
         // declared in pairs in the APID
@@ -258,7 +258,7 @@
               value = member[xet];        // get/setter function
 
           // Yup, xetters have to be functions
-          if (value && !isFunction(value)) _err(Error(xet + '$' + name + ' is not a function'));
+          if (value && !isFunction(value)) error(Error(xet + '$' + name + ' is not a function'));
 
           // See if we can find a super-function for this xetter
           var superf = superObj.__meta;
@@ -270,7 +270,7 @@
 
           // To Do: Refine this warning.  There are times when getter/setters need to be defined in
           // pairs.
-          // if (!value && mod) _err(Error(mod + '$' + name + ' must be defined'));
+          // if (!value && mod) error(Error(mod + '$' + name + ' must be defined'));
           if (value) _applyXetter(dst, name, xet, value);
         }
       } else {
@@ -312,7 +312,6 @@
 
       // bind 'bind$...' functions to this instance
       if (meta.hasBinds) for (var k in meta.binds) {
-        if (k == 'fireChanged') console.log('binding ' + k + ' ' + this.id);
         this[k] = bind(this[k], this);
       }
 
@@ -384,6 +383,7 @@
     extendObject: extendObject,
 
     // Useful methods we might as well make available
+    error: error,
     nilf: nilf,
     bind: bind,
     isFunction: isFunction,

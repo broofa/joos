@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<script src="../joos.js"></script>
+<script src="xjoos.js"></script>
+<script src="joos.anim.js"></script>
+<style>
+/* Nothing interesting here - just some basic styling.  Move along. :) */
+body {font-family: sans-serif;}
+.box {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 40px;
+  height: 40px;
+  border: solid 1px red;
+}
+</style>
+
+</head>
+
+<body>
+<div id="box1" class="box"></div>
+<div id="box2" class="box"></div>
+<div id="box3" class="box"></div>
+<script>
+joos.anim.add({
+  context: joos.$('box1'),
+  from: 100,
+  to: 300,
+  onProgress: function(progress, params) {
+    var s = params.context.style;
+    s.left = joos.px(progress);
+    s.top = joos.px(progress);
+  }
+});
+joos.anim.add({
+  context: joos.$('box2'),
+  duration: 1000,
+  from: 0, to: 300,
+  easing: 'sin',
+  block: true,
+  onProgress: function(progress, params) {
+    var s = params.context.style;
+    s.left = joos.px(progress);
+  }
+});
+joos.anim.add({
+  context: joos.$('box3'),
+  duration: 1000,
+  from: 0, to: 300,
+  easing: 'bounce',
+  onProgress: function(progress, params) {
+    var s = params.context.style;
+    s.left = joos.px(progress);
+  }
+});
+joos.anim.add({
+  context: joos.$('box1'),
+  to: 100,
+  from: 300,
+  block: true,
+  onProgress: function(progress, params) {
+    var s = params.context.style;
+    s.left = joos.px(progress);
+    s.top = joos.px(progress);
+  }
+});
+</script>
+</body>
+</html>

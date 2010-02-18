@@ -1,65 +1,107 @@
-# joos == "OO in JS"
+<style>
+.key {
+  font-weight: bold;
+  color: #084;
+}
+</style>
+# Joos - OO in JS 
 
-"joos" is a compact javascript library that provides an elegant way of writing Object-Oriented code.
+Joos is a lightweight library that makes writing Object Oriented JavaScript easier.
 
-joos **is**:
+Joos **is** ...
 
-  * Lightweight - &lt; 1.5KB minified and gzipped
-  * Library agnostic - Use it with jQuery, Prototype, Ext... whatever.
-  * Powerful - Supports OO constructs that aren't typically available in JS or other 3rd-party JS libraries.
-  * Intuitive - joos-enabled code is more readable, and easier to organize.  And it just *looks* better
-  * Cross-platform - Urrr... well... sort of.  I need to spec out what the exact browser support story is.
+  * **Small** - &lt; 1.5KB minified and gzipped
+  * **Agnostic** - it can be used standalone, or in conjunction with jQuery, Prototype, Dojo, MooTools, etc.
+  * **Powerful** - it provides OO constructs that are traditionally difficult to implement
+  * **Intuitive** - code written with Joos is more readable and easier to organize; it just *looks* better
+  * **Performant** - Joos is fast and efficient
+  * **Cross-platform** - urrr... well... sort of.  I need to spec out what the exact browser support story is.)
 
-joos **is not**:
+Joos is **not** ...
 
-  * Compiled into javascript. It *is* javascript.
-  * A replacement for existing libraries.
+  * A metalanguage - it's JavaScript, for JavaScript coders.
 
-Some of the more interesting features in joos include:
+## Joos Features
 
-  * API-defined-as-object approach for more intuitive code structure
-  * Simple, efficient "super" support (e.g. "this.\_super()") for:
-    * object prototypes
-    * static class methods (!)
-    * getter / setter methods(!!)
-    * extended object (mixin) methods (!!!)
-  * Simple getter/setter support, e.g. "set$foo", "get$foo"
-  * Automatic binding of methods to object instances (e.g. "bind$someMethod")
-  * Object and static initializer support (via "initialize" and "initialize$")
+Joos' feature set is minimal by design.  It provides elegant solutions to a handful of fundamental problems JavaScript developers face every day (still!)  Specifically, it provides ...
 
-## API (w/ examples)
+  * A comprehensive API definition framework that allows for cleaner, more readable code
+  * A powerful inheritance model.  "this.\_super()" can be used anywhere you override ...
+    * Instance methods
+    * Class methods
+    * Getter / setter methods
+    * Extended object (mixin) methods
+    * Methods on native objects and classes
+  * A cross-platform syntax for defining getters and setters
+  * A simple, powerful mechanism for binding methods to object instances as part of the method declaration
+  * Built in class and object initialization
 
-### API Definition Objects (APID's)
-When using joos, you define your class, extension, and object APIs using an API Definition object (APID).  These are simply regular javascript objects, with a key syntax that allows you to specify optional modifiers for your API members.  For example, the 
+For details on how this works, read on ...
 
-    var Loggable = {
-      get$prefix: function() {return this._prefix || "> ";},
+## API Definitions (APIDs)
 
-      set$prefix: function(v) {this._prefix = v;},
-
-      bind$log: function(msg) {
-        var el = document.createElement('div');
-        el.className = 'log';
-        el.innerHTML = this.prefix + msg;
-        this.appendChild(el);
-      }
-    };
-
-    joos.extendObject(document.getElementById('log'), LOGGABLE);
-
-joos allows you to define your APIs using a single object (referred to in joos as an API Definition, or "APID").  It's no longer necessary to write code that declares the constructor function in one place, assigns the prototype properties in another, the class properties in yet a third place and, finally has some static initialization code in yet another spot.  Just put it all in an API Definition object, and let joos do the rest.
-
-Okay, APIDs and key modifiers sound good, but what does this stuff look like? How's it work?  Let's check out a few examples ...
-
-### joos.createClass()
-
-Classes are created with "joos.createClass(apid)", where 'apid' is an API Definition (APID) object.  The simplest form of this is:
-
-      var MyClass = joos.createClass();
-
-This creates a new, empty class.  But for a slightly more interesting example, let's instead create a class that has some properties and methods by passing in an API Definition object:
+APIs are defined using standard JS objects.  For example:
 
     var MyClass = joos.createClass({
+      someProperty: 123,
+      someMethod: function() { /* ... */ },
+      someOtherMethod: function() { /* ... */}
+    });
+
+This is a common pattern in libraries like Prototype (Class.create) and Dojo (dojo.declare), and mirrors how object prototypes are defined.
+
+But the "magic sauce" in Joos comes from it's support for modifier directives in the property names.  For example, a "Joos"-ified version of MyClass might look like this:
+
+    var MyClass = joos.createClass({
+      initialize$: function() { /* ... */ },
+
+      $SOME_CONSTANT: 123,
+
+      $aStaticMethod: function() { /* ... */ },
+
+      initialize: function() { /* ... */ },
+
+      get$someProperty: function() { /* ... */ },
+      set$someProperty: function(aValue) { /* ... */ },
+
+      bind$anEventHandler: function() { /* ... */ },
+
+      someMethod: function() { /* ... */ },
+      someOtherMethod: function() { /* ... */}
+    });
+
+The above code illustrates Joos' support for ...
+
+  * Static initializers ("initialize$")
+  * Static variables ("$SOME\_CONSTANT")
+  * Static methods ("$aStaticMethod")
+  * Instance initialization ("initialize")
+  * Getters and setters ("get$someProperty" and "set$someProperty")
+  * Declarative method binding ("bind$anEventHandler")
+  * Regular instance members ("someMethod" and "someOtherMethod")
+
+For a complete description of keys and ** APID Key Syntax and Modifiers ** below
+
+## Joos API
+
+### joos.createClass(_APIDefinition_)
+
+Create a class. _APIDefinition_ is a Joos API definition object as described above.  It supports the following modifiers:
+  * **initialize$** - Static initializer function.  Run once, immediately after class is created
+  * **initialize** - instance initializer function.  Run once for each new instance of the class, as part of instance creation.
+  * **superclass$** - Specifies the class to inherit from
+
+Classes a "joos.createClass(_apid\_definition_)"
+
+#### Example: Creating a class
+
+    var MyClass = joos.createClass({
+      // Define a static initializer method. This method is called once,
+      // immediately after the class is created.
+      initialize$: function() {
+        // Invoked once MyClass is ready for use
+        // this == MyClass
+      },
 
       // Define MyClass.SOME_CONSTANT
       $SOME_CONSTANT: 'a value',
@@ -68,13 +110,6 @@ This creates a new, empty class.  But for a slightly more interesting example, l
       $find: function() {
         // this == MyClass
       }
-
-      // Define a static initializer method. This method is called once,
-      // immediately after the class is created.
-      initialize$: function() {
-        // Invoked once MyClass is ready for use
-        // this == MyClass
-      },
 
       // MyClass instance initializer.
       initialize: function() {
@@ -104,17 +139,7 @@ This creates a new, empty class.  But for a slightly more interesting example, l
       }
     });
 
-#### Subclasses
-
-With MyClass defined, we can create a subclass like this:
-
-    var MySubclass = joos.createClass({
-      superclass$: MyClass
-    });
-
-Again, not very interesting.  So lets flesh it out a bit:
-
-**Note the use of this.\_super() to invoke superclass methods (for both instance and class methods, no less!)**
+#### Example: Creating a Subclass
 
     var MySubclass = joos.createClass({
 
@@ -145,8 +170,11 @@ Again, not very interesting.  So lets flesh it out a bit:
       }
     });
 
-### joos.extendClass()
-joos.extendClass() allows you to enhance existing classes.  This works for _any_ class, not just those created with joos.createClass.  For example, to extend the native Array class:
+### joos.extendClass(_APIDefinition_)
+
+joos.extendClass() allows you to enhance existing classes.  This works for _any_ class, not just those created with joos.createClass.
+
+#### Example: Extending native Array class
 
     joos.extendClass({
       // Define Array.SOME_CONSTANT
@@ -157,22 +185,32 @@ joos.extendClass() allows you to enhance existing classes.  This works for _any_
         var results = this._super();
         // (filter results)
         return results;
-      }
+      },
 
-      // Replace prior initialize() method
-      initialize: function() {
-        // If class being extended had an initialize method, it can be accessed
-        // by calling this._super()t 
-        this._super();
-        // (finish initializing)
+      // Override join() to change default separator
+      join: function(sep) {return this._super(sep || ' - ');},
+
+      // Define read-only "isEmpty" property.  E.g. "if (array.isEmpty) ..."
+      get$isEmpty: function() {
+        for (var i=0, l = this.length; i < l; i++) if (this[i] != null) return false;
+        return true;
+      },
+
+      // Map function to get the results of applying iterator function to each element
+      map: function(iterator) {
+        var arr = [];
+        for (var i=0, l = this.length; i < l; i++) arr[i] = iterator(this[i]);
+        return arr;
       }
     });
 
-### joos.extendObject()
+### joos.extendObject(_APIDefinition_)
 
-joos.extendObject() allows you to extend object instances in much the same way you would extend a class.  This allows you to leverage the powerful "mixin" pattern.  For example, to give a DOM widget "collapsable" behavior, you could do this:
+joos.extendObject() allows you to extend object instances in much the same way you would extend a class.  This allows you to leverage the powerful "mixin" pattern.
 
-    // First, we define the Collapsable APID...
+#### Example: Extending a DOM object
+
+    // Define a "Collapsable" API that can be used to expand/collapse DOM elements
     var Collapsable = {
       // Static constant.
       $CONTENT\_CLASS: 'content',
@@ -211,8 +249,18 @@ There are a couple things to note here.  First, extendObject() ignores static$ m
 
 Also, note that in methods, 'this' refers to the object being extended.  And that it is bindable using bind$, which is just damn cool when setting up event handlers, like handleClick, above.
 
-## APID Key Syntax and Modifiers
-But joos isn't just about letting you lay your code out in a clean, logical manner, and leverage easy-to-use, fast, method inheritance.  joos allows you to prefix your APID keys with special modifiers that provide useful, powerful functionality.  We'll show you how this works below, but for now here's the list of currently supported modifiers:
+## APID Key Modifiers
+
+As discussed above, API definitions in Joos can contain modifier directives in the object keys.  These will always take the form of "*modifier*$".  Furthermore, you're allowed to specify more than one.  For example:
+
+  * bind$someMethod
+  * get$aProperty
+  * $get$aProperty (abbreviated form of static$get$aProperty)
+  * $bind$someMethod
+  * superclass$
+  * initialize$
+
+Joos currently supports the following APID key modifiers...
 
 ### **bind**$*name*
 Activates binding on the *name* function.
@@ -231,7 +279,7 @@ Note: get$ and set$ will produce errors on older browsers [TODO: such as?]
 ### **static**$*name* / $*name*
 Identifies *name* as a static (class) member, as opposed to a prototype member.
 
-The static$ modifier can be abbreviated as simple, "$".  I.e. "$*name*" is identical to "static$*name*"
+For convenience (and because it is somewhat of a convention) this can be abbreviated as just, "$".  E.g. "$*name*" is identical to "static$*name*"
 
 ### **superclass**$
 Specifies the superclass to inherit from
